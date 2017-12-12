@@ -42,15 +42,27 @@ Compiling .\contracts\BlockFoodPreSale.sol...
 Compiling .\contracts\Migrations.sol...
 Deploy BlockFoodPreSale { target: '0xa3d736079d6bf7c14a96ab3ad131c349ceaf141e',
   endDate: 1518105600,
+  minContribution: 1,
   minCap: 100,
   maxCap: 500 }
 
 
   Contract: BlockFoodPreSale
-    √ should properly set the values from the constructor (93ms)
+    √ should properly set the values from the constructor (116ms)
+    apply
+      √ should not work after end (93ms)
+      √ should fail if msg.value below minContrib (97ms)
+      √ should fail if above maxCap (92ms)
+      √ should fail if address already applied (138ms)
+      √ should add application from the user and emit a NewApplication event (167ms)
+    reject
+      √ is only callable by owner (95ms)
+      √ should reject the application, send Ether back to applicant and emit a RejectedApplication event (195ms)
+      √ should update contributionPending and contributionRejected (265ms)
+    accept
+      √ is only callable by owner (75ms)
+      √ should accept the application and emit an AcceptedApplication event (150ms)
 
 
-  1 passing (102ms)
-
-  26 passing (7s)
+  11 passing (2s)
 ```
