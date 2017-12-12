@@ -123,19 +123,17 @@ contract BlockFoodPreSale {
     onlyOwner
     onlyPendingApplication(applicant)
     {
-        if (applications[applicant].contribution > 0) {
-            applications[applicant].state = ApplicationState.Rejected;
+        applications[applicant].state = ApplicationState.Rejected;
 
-            // protection against function reentry on an overriden transfer() function
-            uint contribution = applications[applicant].contribution;
-            applications[applicant].contribution = 0;
-            applicant.transfer(contribution);
+        // protection against function reentry on an overriden transfer() function
+        uint contribution = applications[applicant].contribution;
+        applications[applicant].contribution = 0;
+        applicant.transfer(contribution);
 
-            contributionPending -= contribution;
-            contributionRejected += contribution;
+        contributionPending -= contribution;
+        contributionRejected += contribution;
 
-            RejectedApplication(applicant, contribution, applications[applicant].id);
-        }
+        RejectedApplication(applicant, contribution, applications[applicant].id);
     }
 
     function accept(address applicant)
