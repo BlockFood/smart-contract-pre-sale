@@ -3,7 +3,7 @@ pragma solidity ^0.4.0;
 
 contract BlockFoodPreSale {
 
-    enum ApplicationState {Pending, Rejected, Accepted}
+    enum ApplicationState {Unset, Pending, Rejected, Accepted}
 
     struct Application {
         uint contribution;
@@ -61,7 +61,13 @@ contract BlockFoodPreSale {
     }
 
     modifier onlyNewApplicant () {
-        require(applications[msg.sender].contribution == 0);
+        require(applications[msg.sender].state == ApplicationState.Unset);
+        _;
+    }
+
+    modifier onlyPendingApplication(address applicant) {
+        require(applications[applicant].contribution > 0);
+        require(applications[applicant].state == ApplicationState.Pending);
         _;
     }
 
@@ -103,6 +109,7 @@ contract BlockFoodPreSale {
     function reject(address applicant)
     public
     onlyOwner
+    onlyPendingApplication(applicant)
     {
         if (applications[applicant].contribution > 0) {
             applications[applicant].state = ApplicationState.Rejected;
@@ -122,7 +129,13 @@ contract BlockFoodPreSale {
     function accept(address applicant)
     public
     onlyOwner
+    onlyPendingApplication(applicant)
     {
+        applications[applicant].state = ApplicationState.Accepted;
+
+        contributionPending -= applications[applicant].contribution;
+        contributionAccepted += applications[applicant].contribution;
+
         AcceptedApplication(applicant, applications[applicant].contribution, applications[applicant].id);
     }
 }

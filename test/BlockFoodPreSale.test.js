@@ -150,7 +150,7 @@ contract('BlockFoodPreSale', function (accounts) {
 
             assert.equal(contribution.toNumber(), web3.toWei(0.1, 'ether'), 'contribution is not correctly set')
             assert.equal(id, 'id42', 'id is not correctly set')
-            assert.equal(state, 0, 'state is not correctly set')
+            assert.equal(state, 1, 'state is not correctly set')
 
             const contributionPending = await instance.contributionPending()
 
@@ -201,7 +201,7 @@ contract('BlockFoodPreSale', function (accounts) {
             const [contribution, id, state] = await instance.applications(accounts[1])
 
             assert.equal(contribution.toNumber(), 0, 'contribution has not been reset')
-            assert.equal(state, 1, 'state is not correctly set')
+            assert.equal(state, 2, 'state is not correctly set')
 
             assert.equal(
                 balanceAfter.toNumber(),
@@ -236,7 +236,7 @@ contract('BlockFoodPreSale', function (accounts) {
             ])
 
             // invariant
-            assert.equal(contributionAcceptedAfter.toNumber(), contributionAcceptedBefore.toNumber(), 'contributionAccepted was changed by a rejection')
+            assert.equal(contributionAcceptedBefore.toNumber(), contributionAcceptedAfter.toNumber(), 'contributionAccepted was changed by a rejection')
 
             // before
             assert.equal(contributionPendingBefore.toNumber(), web3.toWei(0.1, 'ether'), 'contributionPending was wrong before rejection')
@@ -246,6 +246,21 @@ contract('BlockFoodPreSale', function (accounts) {
             // after
             assert.equal(contributionPendingAfter.toNumber(), 0, 'contributionPending was not correctly set')
             assert.equal(contributionRejectedAfter.toNumber(), web3.toWei(0.1, 'ether'), 'contributionPending was not correctly set')
+        })
+
+        it('should only work on pending applications', async() => {
+            const configDuplicate = Object.assign({}, config)
+            configDuplicate.endDate = getCurrentDate(10)
+            configDuplicate.minContribution = 0
+            configDuplicate.minCap = 0
+            configDuplicate.maxCap = 1
+
+            const instance = await getNewInstance(configDuplicate)
+
+            await expectFailure(
+                instance.reject(accounts[3]),
+                'reject() did not throw while called on a non-pending application'
+            )
         })
     })
 
@@ -272,16 +287,62 @@ contract('BlockFoodPreSale', function (accounts) {
             assert.equal(event.args.contribution.toNumber(), web3.toWei(0.1, 'ether'), 'contribution is wrong')
             assert.equal(event.args.id, 'id42', 'id is wrong')
 
-            /*const [contribution, id, state] = await instance.applications(accounts[1])
+            const [contribution, id, state] = await instance.applications(accounts[1])
 
-            assert.equal(contribution.toNumber(), 0, 'contribution has not been reset')
-            assert.equal(state, 1, 'state is not correctly set')
+            assert.equal(state, 3, 'state is not correctly set')
+        })
 
-            assert.equal(
-                balanceAfter.toNumber(),
-                balanceBefore.plus(web3.toWei(0.1, 'ether')).toNumber(),
-                'reject() did not transfer the Ether to the applicant'
-            )*/
+        it('should update contributionPending and contributionAccepted', async () => {
+            const instance = await getInstanceWithApplication(accounts[1])
+
+            const [
+                contributionPendingBefore,
+                contributionRejectedBefore,
+                contributionAcceptedBefore
+            ] = await Promise.all([
+                instance.contributionPending(),
+                instance.contributionRejected(),
+                instance.contributionAccepted(),
+            ])
+
+            await instance.accept(accounts[1])
+
+            const [
+                contributionPendingAfter,
+                contributionRejectedAfter,
+                contributionAcceptedAfter
+            ] = await Promise.all([
+                instance.contributionPending(),
+                instance.contributionRejected(),
+                instance.contributionAccepted(),
+            ])
+
+            // invariant
+            assert.equal(contributionRejectedBefore.toNumber(), contributionRejectedAfter.toNumber(), 'contributionAccepted was changed by a rejection')
+
+            // before
+            assert.equal(contributionPendingBefore.toNumber(), web3.toWei(0.1, 'ether'), 'contributionPending was wrong before rejection')
+            assert.equal(contributionRejectedBefore.toNumber(), 0, 'contributionRejected was not correctly set')
+            assert.equal(contributionAcceptedBefore.toNumber(), 0, 'contributionAccepted was not correctly set')
+
+            // after
+            assert.equal(contributionPendingAfter.toNumber(), 0, 'contributionPending was not correctly set')
+            assert.equal(contributionAcceptedAfter.toNumber(), web3.toWei(0.1, 'ether'), 'contributionPending was not correctly set')
+        })
+
+        it('should only work on pending applications', async() => {
+            const configDuplicate = Object.assign({}, config)
+            configDuplicate.endDate = getCurrentDate(10)
+            configDuplicate.minContribution = 0
+            configDuplicate.minCap = 0
+            configDuplicate.maxCap = 1
+
+            const instance = await getNewInstance(configDuplicate)
+
+            await expectFailure(
+                instance.accept(accounts[3]),
+                'accept() did not throw while called on a non-pending application'
+            )
         })
     })
 })
