@@ -128,7 +128,7 @@ contract('BlockFoodPreSale', function (accounts) {
             )
         })
 
-        it('should add application from the user and emit a NewApplication event', async () => {
+        it('should add application from the user and emit a PendingApplication event', async () => {
             const configDuplicate = Object.assign({}, config)
             configDuplicate.endDate = getCurrentDate(10)
             configDuplicate.minContribution = 0
@@ -141,7 +141,7 @@ contract('BlockFoodPreSale', function (accounts) {
 
             const event = logs[0]
 
-            assert.equal(event.event, 'NewApplication', 'event name is wrong')
+            assert.equal(event.event, 'PendingApplication', 'event name is wrong')
             assert.equal(event.args.applicant, accounts[0], 'applicant is wrong')
             assert.equal(event.args.contribution.toNumber(), web3.toWei(0.1, 'ether'), 'contribution is wrong')
             assert.equal(event.args.id, 'id42', 'id is wrong')
@@ -172,14 +172,20 @@ contract('BlockFoodPreSale', function (accounts) {
         return instance
     }
 
+    const assertOnlyOwner = async (functionName, ...args) => {
+        const instance = await getNewInstance(config)
+
+        args.push({ from: accounts[1] })
+
+        await expectFailure(
+            instance[functionName].apply(instance, args),
+            `${functionName}() did not throw error while called by not the owner`
+        )
+    }
+
     describe('reject', () => {
         it('is only callable by owner', async () => {
-            const instance = await getNewInstance(config)
-
-            await expectFailure(
-                instance.reject(accounts[0], { from: accounts[1] }),
-                `failed() did not throw error while called by not the owner`
-            )
+            await assertOnlyOwner(`reject`, accounts[0])
         })
 
         it('should reject the application, send Ether back to applicant and emit a RejectedApplication event', async () => {
@@ -248,7 +254,7 @@ contract('BlockFoodPreSale', function (accounts) {
             assert.equal(contributionRejectedAfter.toNumber(), web3.toWei(0.1, 'ether'), 'contributionPending was not correctly set')
         })
 
-        it('should only work on pending applications', async() => {
+        it('should only work on pending applications', async () => {
             const configDuplicate = Object.assign({}, config)
             configDuplicate.endDate = getCurrentDate(10)
             configDuplicate.minContribution = 0
@@ -265,14 +271,8 @@ contract('BlockFoodPreSale', function (accounts) {
     })
 
     describe('accept', () => {
-
         it('is only callable by owner', async () => {
-            const instance = await getNewInstance(config)
-
-            await expectFailure(
-                instance.accept(accounts[0], { from: accounts[1] }),
-                `failed() did not throw error while called by not the owner`
-            )
+            await assertOnlyOwner(`accept`, accounts[0])
         })
 
         it('should accept the application and emit an AcceptedApplication event', async () => {
@@ -330,7 +330,7 @@ contract('BlockFoodPreSale', function (accounts) {
             assert.equal(contributionAcceptedAfter.toNumber(), web3.toWei(0.1, 'ether'), 'contributionPending was not correctly set')
         })
 
-        it('should only work on pending applications', async() => {
+        it('should only work on pending applications', async () => {
             const configDuplicate = Object.assign({}, config)
             configDuplicate.endDate = getCurrentDate(10)
             configDuplicate.minContribution = 0
@@ -343,6 +343,102 @@ contract('BlockFoodPreSale', function (accounts) {
                 instance.accept(accounts[3]),
                 'accept() did not throw while called on a non-pending application'
             )
+        })
+    })
+
+    describe('withdraw', () => {
+        it('is only callable by owner', async () => {
+            await assertOnlyOwner(`withdraw`, 0)
+        })
+
+        it('can withdraw only if minCap is reached', async () => {
+            const configDuplicate = Object.assign({}, config)
+            configDuplicate.endDate = getCurrentDate(10)
+            configDuplicate.minContribution = 0.1
+            configDuplicate.minCap = 0.1
+            configDuplicate.maxCap = 1
+
+            const instance = await getNewInstance(configDuplicate)
+
+            await expectFailure(
+                instance.withdraw(0.1),
+                `withdraw() did not throw despite minCap not being reached`
+            )
+
+            await instance.apply('id42', { value: web3.toWei(0.1, 'ether') })
+
+            await instance.accept(accounts[0])
+
+            await instance.withdraw(0.1)
+        })
+
+        const getWithdrawableInstance = async () => {
+            const configDuplicate = Object.assign({}, config)
+            configDuplicate.endDate = getCurrentDate(10)
+            configDuplicate.minContribution = 0.1
+            configDuplicate.minCap = 0.1
+            configDuplicate.maxCap = 1
+
+            const instance = await getNewInstance(configDuplicate)
+
+            await instance.apply('id42', { value: web3.toWei(0.1, 'ether'), from: accounts[0] })
+            await instance.accept(accounts[0])
+
+            await instance.apply('id52', { value: web3.toWei(0.1, 'ether'), from: accounts[1] })
+            await instance.accept(accounts[1])
+
+            return instance
+        }
+
+        it('updates withdrawn property', async () => {
+            const instance = await getWithdrawableInstance()
+
+            const withdrawnBefore = await instance.withdrawn()
+            assert.equal(withdrawnBefore.toNumber(), 0, 'withdrawn was not 0 before call')
+
+            await instance.withdraw(web3.toWei(0.1, 'ether'))
+
+            const withdrawnAfter = await instance.withdrawn()
+            assert.equal(withdrawnAfter.toNumber(), web3.toWei(0.1, 'ether'), 'withdrawn was not updated after call')
+        })
+
+        it('can only withdraw what is available and not already withdrawn', async () => {
+            const instance = await getWithdrawableInstance()
+
+            await instance.withdraw(web3.toWei(0.2, 'ether'))
+
+            await expectFailure(
+                instance.withdraw(web3.toWei(0.1, 'ether')),
+                `withdraw() did not throw`
+            )
+        })
+
+        it('transfer the funds to the target', async () => {
+            const instance = await getWithdrawableInstance()
+
+            const balanceBefore = await getBalance(config.target)
+
+            await instance.withdraw(web3.toWei(0.2, 'ether'))
+
+            const balanceAfter = await getBalance(config.target)
+
+            assert.equal(
+                balanceBefore.plus(web3.toWei(0.2, 'ether')).toNumber(),
+                balanceAfter.toNumber(),
+                `Funds were not transferred to the target`
+            )
+        })
+
+        it('emits a Withdrawn event', async () => {
+            const instance = await getWithdrawableInstance()
+
+            const { logs } = await instance.withdraw(web3.toWei(0.2, 'ether'))
+
+            const event = logs[0]
+
+            assert.equal(event.event, 'Withdrawn', 'event name is wrong')
+            assert.equal(event.args.target, config.target, 'target is wrong')
+            assert.equal(event.args.amount.toNumber(), web3.toWei(0.2, 'ether'), 'amount is wrong')
         })
     })
 })

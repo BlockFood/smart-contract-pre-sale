@@ -29,13 +29,15 @@ contract BlockFoodPreSale {
     uint public contributionPending;
     uint public contributionRejected;
     uint public contributionAccepted;
+    uint public withdrawn;
 
     /*
         Events
     */
-    event NewApplication(address applicant, uint contribution, string id);
+    event PendingApplication(address applicant, uint contribution, string id);
     event RejectedApplication(address applicant, uint contribution, string id);
     event AcceptedApplication(address applicant, uint contribution, string id);
+    event Withdrawn(address target, uint amount);
 
     /*
         Modifiers
@@ -71,6 +73,16 @@ contract BlockFoodPreSale {
         _;
     }
 
+    modifier onlyMinCapReached() {
+        require(contributionAccepted >= minCap);
+        _;
+    }
+
+    modifier onlyNotWithdrawn(uint amount) {
+        require(withdrawn + amount <= contributionAccepted);
+        _;
+    }
+
     /*
         Constructor
     */
@@ -103,7 +115,7 @@ contract BlockFoodPreSale {
     {
         applications[msg.sender] = Application(msg.value, id, ApplicationState.Pending);
         contributionPending += msg.value;
-        NewApplication(msg.sender, msg.value, id);
+        PendingApplication(msg.sender, msg.value, id);
     }
 
     function reject(address applicant)
@@ -114,7 +126,7 @@ contract BlockFoodPreSale {
         if (applications[applicant].contribution > 0) {
             applications[applicant].state = ApplicationState.Rejected;
 
-            // protection against function reentry on an overriden transfer function
+            // protection against function reentry on an overriden transfer() function
             uint contribution = applications[applicant].contribution;
             applications[applicant].contribution = 0;
             applicant.transfer(contribution);
@@ -137,5 +149,16 @@ contract BlockFoodPreSale {
         contributionAccepted += applications[applicant].contribution;
 
         AcceptedApplication(applicant, applications[applicant].contribution, applications[applicant].id);
+    }
+
+    function withdraw(uint amount)
+    public
+    onlyOwner
+    onlyMinCapReached
+    onlyNotWithdrawn(amount)
+    {
+        withdrawn += amount;
+        target.transfer(amount);
+        Withdrawn(target, amount);
     }
 }

@@ -50,19 +50,29 @@ Deploy BlockFoodPreSale { target: '0xa3d736079d6bf7c14a96ab3ad131c349ceaf141e',
   Contract: BlockFoodPreSale
     √ should properly set the values from the constructor (116ms)
     apply
-      √ should not work after end (93ms)
-      √ should fail if msg.value below minContrib (97ms)
-      √ should fail if above maxCap (92ms)
-      √ should fail if address already applied (138ms)
-      √ should add application from the user and emit a NewApplication event (167ms)
+      √ should not work after end (100ms)
+      √ should fail if msg.value below minContrib (94ms)
+      √ should fail if above maxCap (99ms)
+      √ should fail if address already applied (153ms)
+      √ should add application from the user and emit a PendingApplication event (176ms)
     reject
-      √ is only callable by owner (95ms)
-      √ should reject the application, send Ether back to applicant and emit a RejectedApplication event (195ms)
-      √ should update contributionPending and contributionRejected (265ms)
+      √ is only callable by owner (92ms)
+      √ should reject the application, send Ether back to applicant and emit a RejectedApplication event (239ms)
+      √ should update contributionPending and contributionRejected (249ms)
+      √ should only work on pending applications (92ms)
     accept
-      √ is only callable by owner (75ms)
-      √ should accept the application and emit an AcceptedApplication event (150ms)
+      √ is only callable by owner (81ms)
+      √ should accept the application and emit an AcceptedApplication event (176ms)
+      √ should update contributionPending and contributionAccepted (239ms)
+      √ should only work on pending applications (70ms)
+    withdraw
+      √ is only callable by owner (101ms)
+      √ can withdraw only if minCap is reached (254ms)
+      √ updates withdrawn property (423ms)
+      √ can only withdraw what is available and not already withdrawn (403ms)
+      √ transfer the funds to the target (320ms)
+      √ emits a Withdrawn event (284ms)
 
 
-  11 passing (2s)
+  20 passing (4s)
 ```
