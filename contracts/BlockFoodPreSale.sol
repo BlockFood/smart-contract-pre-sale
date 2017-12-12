@@ -88,21 +88,21 @@ contract BlockFoodPreSale {
     */
 
     function BlockFoodPreSale(
-        address _target,
-        uint _endDate,
-        uint _minContribution,
-        uint _minCap,
-        uint _maxCap
+        address target_,
+        uint endDate_,
+        uint minContribution_,
+        uint minCap_,
+        uint maxCap_
     )
     public
     {
         owner = msg.sender;
 
-        target = _target;
-        endDate = _endDate;
-        minContribution = _minContribution;
-        minCap = _minCap;
-        maxCap = _maxCap;
+        target = target_;
+        endDate = endDate_;
+        minContribution = minContribution_;
+        minCap = minCap_;
+        maxCap = maxCap_;
     }
 
     function apply(string id)
