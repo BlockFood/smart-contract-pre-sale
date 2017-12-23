@@ -44,7 +44,7 @@ Deploy BlockFoodPreSale { target: '0xa3d736079d6bf7c14a96ab3ad131c349ceaf141e',
   endDate: 1518105600,
   minContribution: 1,
   minCap: 100,
-  maxCap: 500 }
+  maxCap: 200 }
 
 
   Contract: BlockFoodPreSale
