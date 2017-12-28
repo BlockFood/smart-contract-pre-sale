@@ -3,7 +3,7 @@ pragma solidity ^0.4.18;
 
 contract BlockFoodPreSale {
 
-    enum ApplicationState {Unset, Pending, Rejected, Accepted}
+    enum ApplicationState {Unset, Pending, Rejected, Accepted, Refunded}
 
     struct Application {
         uint contribution;
@@ -38,6 +38,7 @@ contract BlockFoodPreSale {
     event RejectedApplication(address applicant, uint contribution, string id);
     event AcceptedApplication(address applicant, uint contribution, string id);
     event Withdrawn(address target, uint amount);
+    event Refund(address target, uint amount);
 
     /*
         Modifiers
@@ -80,6 +81,17 @@ contract BlockFoodPreSale {
 
     modifier onlyNotWithdrawn(uint amount) {
         require(withdrawn + amount <= contributionAccepted);
+        _;
+    }
+
+    modifier onlyFailedPreSale() {
+        require(now >= endDate);
+        require(contributionAccepted + contributionPending < minCap);
+        _;
+    }
+
+    modifier onlyAcceptedApplication(address applicant) {
+        require(applications[applicant].state == ApplicationState.Accepted);
         _;
     }
 
@@ -158,5 +170,15 @@ contract BlockFoodPreSale {
         withdrawn += amount;
         target.transfer(amount);
         Withdrawn(target, amount);
+    }
+
+    function refund()
+    public
+    onlyFailedPreSale
+    onlyAcceptedApplication(msg.sender)
+    {
+        applications[msg.sender].state = ApplicationState.Refunded;
+        msg.sender.transfer(applications[msg.sender].contribution);
+        Refund(msg.sender, applications[msg.sender].contribution);
     }
 }

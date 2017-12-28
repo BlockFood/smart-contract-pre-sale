@@ -346,6 +346,29 @@ contract('BlockFoodPreSale', function (accounts) {
         })
     })
 
+    const getWithdrawableInstance = async (date = 10) => {
+        const configDuplicate = Object.assign({}, config)
+        configDuplicate.endDate = getCurrentDate(date < 0 ? -date : date)
+        configDuplicate.minContribution = 0.1
+        configDuplicate.minCap = 0.1
+        configDuplicate.maxCap = 1
+
+        const instance = await getNewInstance(configDuplicate)
+
+        await instance.apply('id42', { value: web3.toWei(0.1, 'ether'), from: accounts[0] })
+        await instance.accept(accounts[0])
+
+        await instance.apply('id52', { value: web3.toWei(0.1, 'ether'), from: accounts[1] })
+        await instance.accept(accounts[1])
+
+        if (date < 0) {
+            web3.currentProvider.send({ jsonrpc: '2.0', method: 'evm_increaseTime', params: [-date + 5], id: 0 })
+            timeAdjustement += (-date + 5)
+        }
+
+        return instance
+    }
+
     describe('withdraw', () => {
         it('is only callable by owner', async () => {
             await assertOnlyOwner(`withdraw`, 0)
@@ -371,24 +394,6 @@ contract('BlockFoodPreSale', function (accounts) {
 
             await instance.withdraw(0.1)
         })
-
-        const getWithdrawableInstance = async () => {
-            const configDuplicate = Object.assign({}, config)
-            configDuplicate.endDate = getCurrentDate(10)
-            configDuplicate.minContribution = 0.1
-            configDuplicate.minCap = 0.1
-            configDuplicate.maxCap = 1
-
-            const instance = await getNewInstance(configDuplicate)
-
-            await instance.apply('id42', { value: web3.toWei(0.1, 'ether'), from: accounts[0] })
-            await instance.accept(accounts[0])
-
-            await instance.apply('id52', { value: web3.toWei(0.1, 'ether'), from: accounts[1] })
-            await instance.accept(accounts[1])
-
-            return instance
-        }
 
         it('updates withdrawn property', async () => {
             const instance = await getWithdrawableInstance()
@@ -439,6 +444,93 @@ contract('BlockFoodPreSale', function (accounts) {
             assert.equal(event.event, 'Withdrawn', 'event name is wrong')
             assert.equal(event.args.target, config.target, 'target is wrong')
             assert.equal(event.args.amount.toNumber(), web3.toWei(0.2, 'ether'), 'amount is wrong')
+        })
+    })
+
+    describe('refund', () => {
+        it('should work only if the pre-sale is over', async () => {
+            const configDuplicate = Object.assign({}, config)
+            configDuplicate.endDate = getCurrentDate(10)
+            configDuplicate.minCap = 0
+            configDuplicate.maxCap = 1
+
+            const instance = await getNewInstance(configDuplicate)
+
+            await expectFailure(
+                instance.refund(),
+                'Withdraw on failure worked before endDate'
+            )
+        })
+        it('should work only if the pre-sale has not reached min cap', async () => {
+            const instance = await getWithdrawableInstance(-10)
+
+            await expectFailure(
+                instance.refund(),
+                'Withdraw on failure worked with min cap reached'
+            )
+        })
+
+        const getFailedPreSale = async (accept = true) => {
+            const configDuplicate = Object.assign({}, config)
+            configDuplicate.endDate = getCurrentDate(10)
+            configDuplicate.minContribution = 0.1
+            configDuplicate.minCap = 0.3
+            configDuplicate.maxCap = 1
+
+            const instance = await getNewInstance(configDuplicate)
+
+            await instance.apply('id42', { value: web3.toWei(0.1, 'ether'), from: accounts[5] })
+            if (accept) {
+                await instance.accept(accounts[5])
+            } else {
+                await instance.reject(accounts[5])
+            }
+
+            await instance.apply('id42', { value: web3.toWei(0.1, 'ether'), from: accounts[6] })
+
+            web3.currentProvider.send({ jsonrpc: '2.0', method: 'evm_increaseTime', params: [15], id: 0 })
+            timeAdjustement += 15
+
+            return instance
+        }
+        it('should not work if caller did not participate', async () => {
+            const instance = await getFailedPreSale()
+
+            await expectFailure(
+                instance.refund({ from: accounts[1] }),
+                'Non participant was able to withdraw on failure'
+            )
+        })
+        it('should not work if application was rejected', async () => {
+            const instance = await getFailedPreSale(false)
+
+            await expectFailure(
+                instance.refund({ from: accounts[5] }),
+                'Participant with failed application was able to withdraw on failure'
+            )
+        })
+        it('should transfer ether back to participant', async () => {
+            const instance = await getFailedPreSale()
+
+            const balanceBefore = await getBalance(accounts[5])
+
+            const tx = await instance.refund({ from: accounts[5] })
+
+            const balanceAfter = await getBalance(accounts[5])
+
+            const gasUsed = tx.receipt.cumulativeGasUsed * Math.pow(10, 11)
+
+            assert.equal(balanceBefore.plus(web3.toWei(0.1, 'ether')).toNumber(), balanceAfter.plus(gasUsed).toNumber())
+        })
+        it('should be able to withdraw only once ether back to participant', async () => {
+            const instance = await getFailedPreSale()
+
+            await instance.refund({ from: accounts[5] })
+
+            await expectFailure(
+                instance.refund({ from: accounts[5] }),
+                'Participant was able to withdraw twice'
+            )
         })
     })
 })
