@@ -38,41 +38,59 @@ This will output something like this:
 
 ```bash
 $ truffle test
-Compiling .\contracts\BlockFoodPreSale.sol...
-Compiling .\contracts\Migrations.sol...
+Using network 'test'.
+
 Deploy BlockFoodPreSale { target: '0xa3d736079d6bf7c14a96ab3ad131c349ceaf141e',
   endDate: 1518105600,
-  minContribution: 1,
+  minContribution: 0.1,
   minCap: 100,
   maxCap: 200 }
 
-
   Contract: BlockFoodPreSale
-    √ should properly set the values from the constructor (116ms)
-    apply
-      √ should not work after end (100ms)
-      √ should fail if msg.value below minContrib (94ms)
-      √ should fail if above maxCap (99ms)
-      √ should fail if address already applied (153ms)
-      √ should add application from the user and emit a PendingApplication event (176ms)
-    reject
-      √ is only callable by owner (92ms)
-      √ should reject the application, send Ether back to applicant and emit a RejectedApplication event (239ms)
-      √ should update contributionPending and contributionRejected (249ms)
-      √ should only work on pending applications (92ms)
-    accept
-      √ is only callable by owner (81ms)
-      √ should accept the application and emit an AcceptedApplication event (176ms)
-      √ should update contributionPending and contributionAccepted (239ms)
-      √ should only work on pending applications (70ms)
-    withdraw
-      √ is only callable by owner (101ms)
-      √ can withdraw only if minCap is reached (254ms)
-      √ updates withdrawn property (423ms)
-      √ can only withdraw what is available and not already withdrawn (403ms)
-      √ transfer the funds to the target (320ms)
-      √ emits a Withdrawn event (284ms)
+    √ should properly set the values from the constructor (59ms)
+    Public functions
+      apply
+        √ should not work after end (93ms)
+        √ should fail if msg.value below minContrib (90ms)
+        √ should fail if above maxCap (98ms)
+        √ should fail if address already applied (165ms)
+        √ should add application from the user and emit a PendingApplication event (151ms)
+        √ should accept application that exceeds the max cap if all accepted (204ms)
+      withdraw
+        √ is only callable by owner (92ms)
+        √ can withdraw only if minCap is reached (218ms)
+        √ updates withdrawn property (395ms)
+        √ can only withdraw what is available and not already withdrawn (419ms)
+        √ transfer the funds to the target (351ms)
+        √ emits a Withdrawn event (302ms)
+    Restricted functions
+      reject
+        √ is only callable by owner (87ms)
+        √ should reject the application, send Ether back to applicant and emit a RejectedApplication event (175ms)
+        √ should update contributionPending and contributionRejected (213ms)
+        √ should only work on pending applications (72ms)
+      accept
+        √ is only callable by owner (93ms)
+        √ should accept the application and emit an AcceptedApplication event (197ms)
+        √ should update contributionPending and contributionAccepted (224ms)
+        √ should only work on pending applications (91ms)
+    Views
+      getApplicants
+        √ should return the application (353ms)
+      getMaximumContributionPossible
+        √ should return the maximum contribution in Ether (366ms)
+    Maintenance functions
+      failsafe
+        √ should only be callable two months after this end (312ms)
+        √ should only be callable by owner (666ms)
+        √ should transfer ethereum to the target (728ms)
+      changeOwner
+        √ should only be callable by owner (101ms)
+        √ should update the owner (109ms)
+      changeTarget
+        √ should only be callable by owner (71ms)
+        √ should update the owner (96ms)
 
 
-  20 passing (4s)
+  30 passing (7s)
 ```

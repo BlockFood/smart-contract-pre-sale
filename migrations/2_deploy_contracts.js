@@ -10,5 +10,6 @@ module.exports = function (deployer) {
         web3.toWei(config.minContribution),
         web3.toWei(config.minCap, 'ether'),
         web3.toWei(config.maxCap, 'ether'),
+        { from: web3.eth.accounts[2] }
     )
 }

@@ -11,6 +11,10 @@ contract BlockFoodPreSale {
         ApplicationState state;
     }
 
+    struct Applicant {
+        address applicant;
+        string id;
+    }
 
     /*
         Set by constructor
@@ -26,6 +30,7 @@ contract BlockFoodPreSale {
         Set by functions
     */
     mapping(address => Application) public applications;
+    Applicant[] public applicants;
     uint public contributionPending;
     uint public contributionRejected;
     uint public contributionAccepted;
@@ -54,7 +59,7 @@ contract BlockFoodPreSale {
     }
 
     modifier onlyMaxCapNotReached() {
-        require((contributionPending + contributionAccepted + msg.value) <= maxCap);
+        require((contributionAccepted + msg.value) <= maxCap);
         _;
     }
 
@@ -95,10 +100,14 @@ contract BlockFoodPreSale {
         _;
     }
 
+    modifier onlyAfterTwoMonthsAfterTheEnd() {
+        require(now > (endDate + 60 days));
+        _;
+    }
+
     /*
         Constructor
     */
-
     function BlockFoodPreSale(
         address target_,
         uint endDate_,
@@ -117,6 +126,10 @@ contract BlockFoodPreSale {
         maxCap = maxCap_;
     }
 
+    /*
+       Public functions
+    */
+
     function apply(string id)
     payable
     public
@@ -126,9 +139,24 @@ contract BlockFoodPreSale {
     onlyNewApplicant
     {
         applications[msg.sender] = Application(msg.value, id, ApplicationState.Pending);
+        applicants.push(Applicant(msg.sender, id));
         contributionPending += msg.value;
         PendingApplication(msg.sender, msg.value, id);
     }
+
+    function refund()
+    public
+    onlyFailedPreSale
+    onlyAcceptedApplication(msg.sender)
+    {
+        applications[msg.sender].state = ApplicationState.Refunded;
+        msg.sender.transfer(applications[msg.sender].contribution);
+        Refund(msg.sender, applications[msg.sender].contribution);
+    }
+
+    /*
+        Restricted functions (owner only)
+    */
 
     function reject(address applicant)
     public
@@ -172,13 +200,50 @@ contract BlockFoodPreSale {
         Withdrawn(target, amount);
     }
 
-    function refund()
+    /*
+        Views
+    */
+
+    function getApplicantsLength()
+    view
     public
-    onlyFailedPreSale
-    onlyAcceptedApplication(msg.sender)
+    returns (uint)
     {
-        applications[msg.sender].state = ApplicationState.Refunded;
-        msg.sender.transfer(applications[msg.sender].contribution);
-        Refund(msg.sender, applications[msg.sender].contribution);
+        return applicants.length;
     }
+
+    function getMaximumContributionPossible()
+    view
+    public
+    returns (uint)
+    {
+        return maxCap - contributionAccepted;
+    }
+
+    /*
+        Maintenance functions
+    */
+
+    function failsafe()
+    public
+    onlyOwner
+    onlyAfterTwoMonthsAfterTheEnd
+    {
+        target.transfer(this.balance);
+    }
+
+    function changeOwner(address newOwner)
+    public
+    onlyOwner
+    {
+        owner = newOwner;
+    }
+
+    function changeTarget(address newTarget)
+    public
+    onlyOwner
+    {
+        target = newTarget;
+    }
+
 }
