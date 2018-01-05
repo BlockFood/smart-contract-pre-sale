@@ -4,6 +4,7 @@ const config = require('../pre-sale/config')
 
 module.exports = function (deployer) {
     console.log('Deploy BlockFoodPreSale', config)
+    
     deployer.deploy(BlockFoodPreSale,
         config.target,
         config.endDate,
@@ -12,4 +13,10 @@ module.exports = function (deployer) {
         web3.toWei(config.maxCap, 'ether'),
         { from: web3.eth.accounts[2] }
     )
+
+    console.log('target=', config.target)
+    console.log('endDate=', config.endDate)
+    console.log('minContribution=', web3.toWei(config.minContribution))
+    console.log('minCap=', web3.toWei(config.minCap, 'ether'))
+    console.log('maxCap=', web3.toWei(config.maxCap, 'ether'))
 }
