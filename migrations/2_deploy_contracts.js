@@ -4,7 +4,7 @@ const config = require('../pre-sale/config')
 
 module.exports = function (deployer) {
     console.log('Deploy BlockFoodPreSale', config)
-    
+
     deployer.deploy(BlockFoodPreSale,
         config.target,
         config.endDate,

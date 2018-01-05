@@ -44,6 +44,7 @@ contract BlockFoodPreSale {
     event AcceptedApplication(address applicant, uint contribution, string id);
     event Withdrawn(address target, uint amount);
     event Refund(address target, uint amount);
+    event ContractUpdate(address owner, address target, uint minContribution, uint minCap, uint maxCap);
 
     /*
         Modifiers
@@ -103,6 +104,11 @@ contract BlockFoodPreSale {
     modifier onlyAfterTwoMonthsAfterTheEnd() {
         require(now > (endDate + 60 days));
         _;
+    }
+
+    modifier sendContractUpdateEvent() {
+        _;
+        ContractUpdate(owner, target, minContribution, minCap, maxCap);
     }
 
     /*
@@ -232,18 +238,44 @@ contract BlockFoodPreSale {
         target.transfer(this.balance);
     }
 
-    function changeOwner(address newOwner)
+    function changeOwner(address owner_)
     public
     onlyOwner
+    sendContractUpdateEvent
     {
-        owner = newOwner;
+        owner = owner_;
     }
 
-    function changeTarget(address newTarget)
+    function changeTarget(address target_)
     public
     onlyOwner
+    sendContractUpdateEvent
     {
-        target = newTarget;
+        target = target_;
+    }
+
+    function changeMinCap(uint minCap_)
+    public
+    onlyOwner
+    sendContractUpdateEvent
+    {
+        minCap = minCap_;
+    }
+
+    function changeMaxCap(uint maxCap_)
+    public
+    onlyOwner
+    sendContractUpdateEvent
+    {
+        maxCap = maxCap_;
+    }
+
+    function changeMinContribution(uint minContribution_)
+    public
+    onlyOwner
+    sendContractUpdateEvent
+    {
+        minContribution = minContribution_;
     }
 
 }

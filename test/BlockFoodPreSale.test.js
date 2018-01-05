@@ -561,45 +561,64 @@ contract('BlockFoodPreSale', function (accounts) {
             })
         })
 
-        describe('changeOwner', () => {
+        const testMaintenanceFunction = (functionName, expectedValue, accessorName, isNumber = false) => {
             it('should only be callable by owner', async () => {
                 const instance = await getNewInstance(config)
 
                 await expectFailure(
-                    instance.changeOwner(notOwnerAccount, { from : notOwnerAccount }),
+                    instance[functionName](expectedValue, { from: notOwnerAccount }),
                     'changeOwner did not throw'
                 )
             })
-            it('should update the owner', async () => {
+            it('should update the ' + accessorName, async () => {
                 const instance = await getNewInstance(config)
 
-                await instance.changeOwner(notOwnerAccount, { from : ownerAccount })
+                await instance[functionName](expectedValue, { from: ownerAccount })
 
-                const newOwner = await instance.owner()
+                const newValue = await instance[accessorName]()
 
-                assert.equal(newOwner, notOwnerAccount)
+                if (isNumber) {
+                    assert.equal(newValue.toNumber(), expectedValue)
+                } else {
+                    assert.equal(newValue, expectedValue)
+                }
             })
+            it('should send a ContractUpdate event', async () => {
+                const instance = await getNewInstance(config)
+
+                const { logs } = await instance[functionName](expectedValue, { from: ownerAccount })
+
+                const firstLog = logs[0]
+
+                assert.equal(firstLog.event, 'ContractUpdate')
+                if (isNumber) {
+                    assert.equal(firstLog.args[accessorName].toNumber(), expectedValue)
+                } else {
+                    assert.equal(firstLog.args[accessorName], expectedValue)
+                }
+            })
+        }
+
+        describe('changeOwner', () => {
+            testMaintenanceFunction('changeOwner', notOwnerAccount, 'owner')
         })
 
         describe('changeTarget', () => {
-            it('should only be callable by owner', async () => {
-                const instance = await getNewInstance(config)
-
-                await expectFailure(
-                    instance.changeTarget(notOwnerAccount, { from : notOwnerAccount }),
-                    'changeOwner did not throw'
-                )
-            })
-            it('should update the owner', async () => {
-                const instance = await getNewInstance(config)
-
-                await instance.changeTarget(notOwnerAccount, { from : ownerAccount })
-
-                const newTarget = await instance.target()
-
-                assert.equal(newTarget, notOwnerAccount)
-            })
+            testMaintenanceFunction('changeTarget', notOwnerAccount, 'target')
         })
+
+        describe('changeMinCap', () => {
+            testMaintenanceFunction('changeMinCap', web3.toWei('42', 'ether'), 'minCap', true)
+        })
+
+        describe('changeMaxCap', () => {
+            testMaintenanceFunction('changeMaxCap', web3.toWei('142', 'ether'), 'maxCap', true)
+        })
+
+        describe('changeMinContribution', () => {
+            testMaintenanceFunction('changeMinContribution', web3.toWei('42', 'ether'), 'minContribution', true)
+        })
+
     })
 
 })
