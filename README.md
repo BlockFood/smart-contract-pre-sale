@@ -1,4 +1,4 @@
-# BlockFood Token Sale Smart Contract
+# BlockFood Pre-Sale Smart Contract
 
 ## Goal
 
