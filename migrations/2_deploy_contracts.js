@@ -1,11 +1,12 @@
 const BlockFoodPreSale = artifacts.require('./BlockFoodPreSale.sol')
+const BlockFoodExtendedPreSale = artifacts.require('./BlockFoodExtendedPreSale.sol')
 
 const config = require('../pre-sale/config')
 
 module.exports = function (deployer) {
     console.log('Deploy BlockFoodPreSale', config)
 
-    deployer.deploy(BlockFoodPreSale,
+    /*deployer.deploy(BlockFoodPreSale,
         config.target,
         config.endDate,
         web3.toWei(config.minContribution),
@@ -14,9 +15,10 @@ module.exports = function (deployer) {
         { from: web3.eth.accounts[2] }
     )
 
-    console.log('target=', config.target)
+
+    /*console.log('target=', config.target)
     console.log('endDate=', config.endDate)
     console.log('minContribution=', web3.toWei(config.minContribution))
     console.log('minCap=', web3.toWei(config.minCap, 'ether'))
-    console.log('maxCap=', web3.toWei(config.maxCap, 'ether'))
+    console.log('maxCap=', web3.toWei(config.maxCap, 'ether'))*/
 }

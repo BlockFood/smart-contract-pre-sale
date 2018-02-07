@@ -1,7 +1,6 @@
 const config = require('../pre-sale/config')
 const dateInSeconds = (jsonDateString) => ~~(Date.parse(jsonDateString) / 1000)
 
-
 const BlockFoodPreSale = artifacts.require('./BlockFoodPreSale.sol')
 const BlockFoodExtendedPreSale = artifacts.require('./BlockFoodExtendedPreSale.sol')
 
@@ -20,7 +19,7 @@ let timeAdjustement = 0
 const getCurrentDate = (diffInSeconds) => ~~((Date.now() + (diffInSeconds + timeAdjustement) * 1000) / 1000)
 
 const moveTimeForward = async (seconds) => {
-    await web3.currentProvider.send({jsonrpc: '2.0', method: 'evm_increaseTime', params: [seconds], id: 0})
+    await web3.currentProvider.send({ jsonrpc: '2.0', method: 'evm_increaseTime', params: [seconds], id: 0 })
     timeAdjustement += seconds
 }
 
@@ -47,20 +46,30 @@ contract('BlockFoodExtendedPreSale', function (accounts) {
             web3.toWei(1, 'ether'),
             web3.toWei(0, 'ether'),
             web3.toWei(2, 'ether'),
-            {from: ownerAccount}
+            { from: ownerAccount }
         )
 
-        await preSale.apply('id42', {value: web3.toWei(1, 'ether'), from: notOwnerAccount})
-        await preSale.accept(notOwnerAccount, {from: ownerAccount})
+        await preSale.apply('id42', { value: web3.toWei(1, 'ether'), from: notOwnerAccount })
+        await preSale.accept(notOwnerAccount, { from: ownerAccount })
 
+        console.log('???',preSale.address.toString(), typeof preSale.address)
 
         const extendedPreSale = await BlockFoodExtendedPreSale.new(
-            preSale.address,
+            preSale.address.toString(),
+            accounts[1],
             dateInSeconds('2018-02-22T16:00:00.000Z'),
-            {from: ownerAccount}
+            web3.toWei(1, 'ether'),
+            web3.toWei(0, 'ether'),
+            web3.toWei(2, 'ether'),
+            { from: ownerAccount }
         )
 
-        console.log(await extendedPreSale.owner())
+        assert.equal(await extendedPreSale.owner(), await preSale.owner())
+        assert.equal(await extendedPreSale.target(), await preSale.target())
+        assert.equal((await extendedPreSale.endDate()).toNumber(), (await preSale.endDate()).toNumber())
+        assert.equal((await extendedPreSale.minContribution()).toNumber(), (await preSale.minContribution()).toNumber())
+        assert.equal((await extendedPreSale.minCap()).toNumber(), (await preSale.minCap()).toNumber())
+        assert.equal((await extendedPreSale.maxCap()).toNumber(), (await preSale.maxCap()).toNumber())
     })
 
 })
